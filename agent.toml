@@ -1,0 +1,15 @@
+[main]
+
+apikey = 1234567890
+apiserver = "api.dockerstack.in"
+log = "/var/log/agent.log"
+
+[storage]
+gdrive=""
+gusername=""
+gpassword=""
+
+[plugins]
+apios=true
+
+
