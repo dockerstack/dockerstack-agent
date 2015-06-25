@@ -1,29 +1,48 @@
-package main
+package server
 
 import (
+	"config"
+	"encoding/json"
 	"fmt"
-	"github.com/pelletier/go-toml"
 	"github.com/shirou/gopsutil/mem"
 	"logging"
 )
 
-func ServerMemory() {
+type ServerData struct {
+	Apikey string `json:"apikey"`
+	Data   struct {
+		Available int `json:"available"`
+		Total     int `json:"total"`
+		Used      int `json:"used"`
+	} `json:"data"`
+	Serverip string `json:"serverip"`
+}
 
-	config, err := toml.LoadFile("agent.toml")
-	if err != nil {
-		fmt.Println(err.Error())
-	} else {
+type ProcessData struct {
+	Apikey string `json:"apikey"`
+	Data   struct {
+		Process []struct {
+			Name string `json:"name"`
+			Path string `json:"path"`
+			Size string `json:"size"`
+		} `json:"process"`
+	} `json:"data"`
+	Serverip string `json:"serverip"`
+}
 
-		apikey := config.Get("main.apikey").(int64)
+func ServerMemory() (*ServerData, error) {
 
-		logging.AppEvent("User API Key:", string(apikey))
+	data := &ServerData{}
+	v, _ := mem.VirtualMemory()
 
-		v, _ := mem.VirtualMemory()
+	data.Data.Total = int(v.Total / 1024)
+	data.Data.Available = int(v.Available / 1024)
+	data.Data.Used = int(v.Used / 1024)
+	m, _ := json.Marshal(data)
 
-		fmt.Println(v)
-		// return v
+	fmt.Println(string(m))
 
-	}
+	return data, nil
 }
 
 func ProcessList() {
@@ -32,9 +51,4 @@ func ProcessList() {
 
 func DiskSpace() {
 
-}
-
-func main() {
-
-	ServerMemory()
 }

@@ -34,6 +34,9 @@ func Critical(message string, value string) {
 	log.Warnf(message, value)
 }
 
+func ApiKey(message string, key string) {
+	log.Infof(message, key)
+}
 func ResourceAlert(message string, alert string) {
 	log.Info(message, alert)
 }

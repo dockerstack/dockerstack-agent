@@ -1,8 +1,9 @@
 [main]
 
-apikey = 1234567890
+apikey = "1234567890"
 apiserver = "api.dockerstack.in"
 log = "/var/log/agent.log"
+interface ="eth1"
 
 [storage]
 gdrive=""
@@ -12,4 +13,6 @@ gpassword=""
 [plugins]
 apios=true
 
+[security]
+https=false
 
