@@ -3,6 +3,8 @@ This is a agent written for the dockerstack application inorder to install on th
 
 The core Framework is written in Golang and the architecutre of the application is as follows
 
+![](https://raw.githubusercontent.com/dockerstack/dockerstack-golang-agent/master/dockerstack-agent.png)
+
 
 ### RoadMap
 
