@@ -1,7 +1,7 @@
 package server
 
 import (
-	"bufio"
+	_ "bufio"
 	"dockerstack/dockerstack-agent/config"
 	_ "dockerstack/dockerstack-agent/logging"
 	"fmt"
@@ -9,13 +9,14 @@ import (
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/mem"
 	_ "github.com/shirou/gopsutil/process"
-	"io/ioutil"
+	_ "io/ioutil"
 	"net"
-	"os"
+	_ "os"
 	"os/exec"
 	_ "reflect"
 	_ "regexp"
 	"strconv"
+	"strings"
 )
 
 type ServerData struct {
@@ -98,17 +99,11 @@ func ProcessList() (*ProcessData, error) {
 	data.Apikey = config.ApiKey()
 	data.Serverip = addrs[0].String()
 
-	file, _ := os.Open("/tmp/process.txt")
-
-	reader := bufio.NewReader(file)
-
-	scanner := bufio.NewScanner(reader)
-
-	for scanner.Scan() {
+	for m := 0; m < len(k); m++ {
 
 		for _, pid := range pids {
 
-			if scanner.Text() == strconv.Itoa(pid.Pid()) {
+			if k[m] == strconv.Itoa(pid.Pid()) {
 
 				data.Data = append(data.Data, Process{Name: pid.Executable(), Pid: pid.Pid()})
 
@@ -132,7 +127,7 @@ func DiskSpace() (*disk.DiskUsageStat, error) {
 //Internal Functions
 
 //Gets Top 5 Process Id's
-func getPids() string {
+func getPids() []string {
 
 	//pids := &ProcesPids{}
 	cmd := "ps aux | awk '{print $2, $4, $11}' | sort -k2rn | head -n 5|awk '{print $1}'"
@@ -142,11 +137,8 @@ func getPids() string {
 		fmt.Println(err.Error())
 	}
 
-	er := ioutil.WriteFile("/tmp/process.txt", out, 0644)
-	if er != nil {
-		fmt.Print(er.Error())
-	}
+	k := strings.Split(string(out), "\n")
 
-	return string(out)
-
+	fmt.Println(k[5])
+	return k
 }
