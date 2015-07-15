@@ -1,14 +1,21 @@
 package server
 
 import (
-	_ "dockerstack/dockerstack-agent/config"
-	"encoding/json"
+	"bufio"
+	"dockerstack/dockerstack-agent/config"
+	_ "dockerstack/dockerstack-agent/logging"
 	"fmt"
+	ps "github.com/mitchellh/go-ps"
+	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/mem"
 	_ "github.com/shirou/gopsutil/process"
-	_ "dockerstack/dockerstack-agent/logging"
-	_ "os"
+	"io/ioutil"
+	"net"
+	"os"
 	"os/exec"
+	_ "reflect"
+	_ "regexp"
+	"strconv"
 )
 
 type ServerData struct {
@@ -21,22 +28,31 @@ type ServerData struct {
 	Serverip string `json:"serverip"`
 }
 
+/*
+Sample output
+{
+  "apikey": 123456,
+  "serverip" : "172.27.9.56",
+  "data":[{
+    "name":"docker",
+    "pid": 925
+  },
+  {
+    "name": "apache2",
+    "pid":1024
+  }]
+}
+*/
+
 type ProcessData struct {
-	Apikey string `json:"apikey"`
-	Data   struct {
-		Process []struct {
-			Name string `json:"name"`
-			Path string `json:"path"`
-			Size string `json:"size"`
-		} `json:"process"`
-	} `json:"data"`
+	Apikey   string `json:"apikey"`
+	Data     []Process
 	Serverip string `json:"serverip"`
 }
 
-type ProcesPids struct {
-	Process []struct {
-		Pid int `json:"pid"`
-	} `json:"process"`
+type Process struct {
+	Name string `json:"name"`
+	Pid  int    `json:"pid"`
 }
 
 func ServerMemory() (*ServerData, error) {
@@ -44,55 +60,81 @@ func ServerMemory() (*ServerData, error) {
 	data := &ServerData{}
 	v, _ := mem.VirtualMemory()
 
+	ief, _ := net.InterfaceByName(config.Main("interface"))
+
+	addrs, err := ief.Addrs()
+	if err != nil {
+		err.Error()
+	}
+
 	data.Data.Total = int(v.Total / 1024)
 	data.Data.Available = int(v.Available / 1024)
 	data.Data.Used = int(v.Used / 1024)
-	m, _ := json.Marshal(data)
+	data.Serverip = addrs[0].String()
+	data.Apikey = config.ApiKey()
 
-	fmt.Println(string(m))
-
+	fmt.Println(ProcessList())
 	return data, nil
 }
 
-func ProcessList() ([]string, error) {
+//Lists Top 5 ProcessPids with Names running on the Host
+func ProcessList() (*ProcessData, error) {
 
-	pids,_ := getPids()
+	k := getPids()
 
-	fmt.Print(pids)
+	fmt.Println(k)
 
-	// var proc []string
+	pids, _ := ps.Processes()
 
-	// for _, pid := range pids {
+	data := new(ProcessData)
 
-		// fmt.Println(string(pid))
-		// 	p, _ := process.NewProcess(pid)
+	ief, _ := net.InterfaceByName(config.Main("interface"))
 
-		// 	// data := &ProcessData{}
+	addrs, err := ief.Addrs()
+	if err != nil {
+		err.Error()
+	}
 
-		// 	fmt.Println(p.Name())
-		// 	fmt.Println(p.Exe())
-		// 	fmt.Println(p.MemoryInfo())
+	data.Apikey = config.ApiKey()
+	data.Serverip = addrs[0].String()
 
-		// 	// proc[0] = p.Name()
-		// 	// proc[1] = p.Exe()
-		// 	// proc[2] = p.MemoryInfo()
+	file, _ := os.Open("/tmp/process.txt")
 
-	// }
+	reader := bufio.NewReader(file)
 
-	return nil, nil
+	scanner := bufio.NewScanner(reader)
+
+	for scanner.Scan() {
+
+		for _, pid := range pids {
+
+			if scanner.Text() == strconv.Itoa(pid.Pid()) {
+
+				data.Data = append(data.Data, Process{Name: pid.Executable(), Pid: pid.Pid()})
+
+			}
+		}
+
+	}
+
+	return data, nil
 
 }
 
-func DiskSpace() {
+func DiskSpace() (*disk.DiskUsageStat, error) {
+
+	data, _ := disk.DiskUsage("/")
+
+	return data, nil
 
 }
 
 //Internal Functions
 
 //Gets Top 5 Process Id's
-func getPids() (*ProcesPids, error) {
+func getPids() string {
 
-	pids := &ProcesPids{}
+	//pids := &ProcesPids{}
 	cmd := "ps aux | awk '{print $2, $4, $11}' | sort -k2rn | head -n 5|awk '{print $1}'"
 
 	out, err := exec.Command("bash", "-c", cmd).Output()
@@ -100,16 +142,11 @@ func getPids() (*ProcesPids, error) {
 		fmt.Println(err.Error())
 	}
 
-// 	for _, dat := range pids.Process {
-//
-// 		for _, proc := range out {
-//
-// 			dat.Pid = string(proc)
-// 		}
-// 	}
-//
-	fmt.Print(string(out))
+	er := ioutil.WriteFile("/tmp/process.txt", out, 0644)
+	if er != nil {
+		fmt.Print(er.Error())
+	}
 
-	return out
+	return string(out)
 
 }
