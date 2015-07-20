@@ -17,6 +17,7 @@ func Debian() (value bool, err error) {
 
 }
 
+<<<<<<< HEAD
 func Redhat() (value bool, err error) {
 
 	if _, err := os.Stat("/etc/redhat-release"); os.IsNotExist(err) {
@@ -27,3 +28,8 @@ func Redhat() (value bool, err error) {
 	return true, nil
 
 }
+=======
+/*func Redhat() (value bool, err error) {
+
+}*/
+>>>>>>> 891b07febf61a7f3fab9c6aeb92d6e4584ceff89
